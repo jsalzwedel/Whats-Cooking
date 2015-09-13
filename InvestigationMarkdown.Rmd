@@ -18,18 +18,59 @@ strong argument that the jsonlite library is generally the best package to use
 for parsing json data:
 http://rstudio-pubs-static.s3.amazonaws.com/31702_9c22e3d1a0c44968a4a1f9656f1800ab.html
 
-```{r}
+```{r, message=FALSE}
 library(jsonlite)
 file <- "train.json"
 train <- fromJSON(txt=file)
 ```
 
-The data.table package makes viewing data much more convenient
+The data.table package makes viewing data much more convenient.
 
 ```{r}
 library(data.table)
 train <- data.table(train)
+```
+
+## Preliminary look
+
+Let's take a quick look at the data.
+
+```{r}
 head(train,2)
 ```
 
+We have three columns: ID of the recipe, type of cuisine, and list of
+ingredients.  The ingredients of a given recipe are all wrapped up on a long
+character vector.  We'll have to split those apart later.
 
+What are the unique cuisine types?
+
+```{r}
+unique(train$cuisine)
+```
+
+
+
+# Analysis
+
+## Strategy
+
+We want to look at each ingredient and see how often it is used in a given
+type of cuisine.  There are many ways to use this information.  The simplest
+might be to ascribe a single cuisine to each ingredient based on where it is
+used most.  When we want to make predictions, each ingredient in a recipe
+will weight that recipe towards a certain cuisine.  We can then then add up the
+weights to see which cuisine is most favored.
+
+Our analysis strategy will be as follows:
+- Make a new data table with a row for each ingredient from each recipe.  We'll
+keep the cuisine and recipe ID as additional columns.  
+- For each ingredient, see where it is most often used, and associate it with
+that type of cuisine.  Here we need to be careful to not be biased by the raw
+number of recipes for any given cuisine. For example, cabbage might be used in 
+10/100 French recipes, but in 5/5 Korean recipes.
+- Make a new data table for the test set with a row for each recipe.
+- Use the previously determined ingredient weights to determine which cuisine has
+a plurality among the ingredients.
+
+## Reformatting the data
