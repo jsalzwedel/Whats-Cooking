@@ -13,10 +13,10 @@ ingredients.
 
 ## Read in the data
 
-The training and test files are in the json format.  This site makes a pretty
+The training and test files are in the json format.  [This site](http://rstudio-pubs-static.s3.amazonaws.com/31702_9c22e3d1a0c44968a4a1f9656f1800ab.html) makes a pretty
 strong argument that the jsonlite library is generally the best package to use
-for parsing json data:
-http://rstudio-pubs-static.s3.amazonaws.com/31702_9c22e3d1a0c44968a4a1f9656f1800ab.html
+for parsing json data.
+
 
 ```{r, message=FALSE}
 library(jsonlite)
@@ -63,14 +63,19 @@ will weight that recipe towards a certain cuisine.  We can then then add up the
 weights to see which cuisine is most favored.
 
 Our analysis strategy will be as follows:
+
 - Make a new data table with a row for each ingredient from each recipe.  We'll
 keep the cuisine and recipe ID as additional columns.  
+
 - For each ingredient, see where it is most often used, and associate it with
 that type of cuisine.  Here we need to be careful to not be biased by the raw
 number of recipes for any given cuisine. For example, cabbage might be used in 
 10/100 French recipes, but in 5/5 Korean recipes.
+
 - Make a new data table for the test set with a row for each recipe.
+
 - Use the previously determined ingredient weights to determine which cuisine has
 a plurality among the ingredients.
+
 
 ## Reformatting the data
