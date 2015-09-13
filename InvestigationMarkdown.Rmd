@@ -21,14 +21,14 @@ for parsing json data.
 ```{r, message=FALSE}
 library(jsonlite)
 file <- "train.json"
-train <- fromJSON(txt=file)
+trainFromJSON <- fromJSON(txt=file)
 ```
 
 The data.table package makes viewing data much more convenient.
 
 ```{r}
 library(data.table)
-train <- data.table(train)
+train <- data.table(trainFromJSON)
 ```
 
 ## Preliminary look
@@ -40,8 +40,8 @@ head(train,2)
 ```
 
 We have three columns: ID of the recipe, type of cuisine, and list of
-ingredients.  The ingredients of a given recipe are all wrapped up on a long
-character vector.  We'll have to split those apart later.
+ingredients.  The ingredients entry for a given recipe is a list of character
+vectors, one for each ingredient.  We'll have to split those apart later.
 
 What are the unique cuisine types?
 
@@ -79,3 +79,40 @@ a plurality among the ingredients.
 
 
 ## Reformatting the data
+
+Let's make a new data table for the ingredients.  First, unpack the list of
+ingredients.  Also, keep track of how many ingredients belong to each recipe.
+```{r}
+ingredientList <- unlist(train$ingredients)
+nlengths <- sapply(train$ingredients, length)
+```
+
+Now make the data table
+
+```{r}
+ingredFrame <- data.frame(id = rep(train$id, nlengths),
+                        cuisine = rep(train$cuisine, nlengths),
+                        ingredient = ingredientList)
+ingredients <- setDT(ingredFrame)
+```
+
+
+
+## Looking at the ingredients
+
+Let's get a list of unique ingredients.
+
+```{r}
+uniqueIng <- unique(ingredients$ingredient)
+```
+
+Let's tabulate cuisines by ingredient using the dplyr package
+
+```{r, message=FALSE}
+library(dplyr)
+```
+
+```{r}
+ingtbl <- as.tbl(ingredients)
+occurances <- count(ingtbl, c("ingredient","cuisine"))
+```
