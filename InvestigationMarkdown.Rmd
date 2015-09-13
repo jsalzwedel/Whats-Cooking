@@ -1,0 +1,35 @@
+---
+title: "Exploring Ingredients Data Set"
+author: "jsalzwedel"
+date: "09/13/2015"
+output: html_document
+---
+
+Let's take a look at the Kaggle "What's cooking" data set.  The goal of the
+competition is to predict the cuisine of a recipe based on the recipe's 
+ingredients.
+
+# Exploratory analysis
+
+## Read in the data
+
+The training and test files are in the json format.  This site makes a pretty
+strong argument that the jsonlite library is generally the best package to use
+for parsing json data:
+http://rstudio-pubs-static.s3.amazonaws.com/31702_9c22e3d1a0c44968a4a1f9656f1800ab.html
+
+```{r}
+library(jsonlite)
+file <- "train.json"
+train <- fromJSON(txt=file)
+```
+
+The data.table package makes viewing data much more convenient
+
+```{r}
+library(data.table)
+train <- data.table(train)
+head(train,2)
+```
+
+
