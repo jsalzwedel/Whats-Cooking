@@ -190,3 +190,51 @@ Hopefully that's not too bad for a first try!
 ## Applying solution to the test set
 
 Let's take the scheme from above and try it out on the test set!
+
+```{r}
+fileTest <- "test.json"
+testFromJSON <- fromJSON(txt=fileTest)
+test <- tbl_df(testFromJSON)
+```
+
+Break down the recipes by ingredient:
+```{r}
+testIngredientList <- unlist(test$ingredients)
+testNlengths <- sapply(test$ingredients, length)
+testIngredients <- data.frame(id = rep(test$id, testNlengths),
+                        ingredient = testIngredientList)
+testIngredients <- tbl_df(testIngredients)
+```
+
+Let's merge our voting scheme with the ingredient list.  Inner_join will
+exclude ingredients that we don't have any vote for.
+
+```{r}
+testVotes <- inner_join(testIngredients, votes)
+testVoteTally <- count(testVotes, id, cuisine.vote, sort=TRUE)
+testVoteWinners <- testVoteTally %>% group_by(id) %>% top_n(n=1, wt = n)
+testVoteWinners <- transmute(testVoteWinners, cuisine.vote)
+testVoteWinners
+```
+
+Again, we'll remove ties.
+
+```{r}
+testTies <- testVoteWinners %>% group_by(id) %>% filter(n() > 1)
+testTies <- rename(testTies, cuisine = cuisine.vote)
+testTies <- inner_join(testTies, cuisineFrequency)
+testTieBreaker <- testTies %>% group_by(id) %>% top_n(n=1, wt = n)
+testTieBreaker <- transmute(testTieBreaker, cuisine.choice = cuisine)
+testVoteWinners <- left_join(testVoteWinners, testTieBreaker)
+testVoteWinners[is.na(testVoteWinners$cuisine.choice),]$cuisine.choice <- 
+    as.character(testVoteWinners[is.na(testVoteWinners$cuisine.choice),]$cuisine.vote)
+testVoteWinners <- transmute(testVoteWinners, cuisine.choice)
+```
+
+Our prediction for each recipe's cuisine:
+
+```{r}
+prediction <- distinct(testVoteWinners)
+prediction <- rename(prediction, cuisine = cuisine.choice)
+write.csv(prediction, "prediction.csv", row.names = FALSE, quote=FALSE)
+```
