@@ -24,11 +24,12 @@ file <- "train.json"
 trainFromJSON <- fromJSON(txt=file)
 ```
 
-The data.table package makes viewing data much more convenient.
+The dplyr::tbl package makes viewing data much more convenient.
 
 ```{r}
-library(data.table)
-train <- data.table(trainFromJSON)
+library(dplyr)
+options(dplyr.width = Inf)
+train <- tbl_df(trainFromJSON)
 ```
 
 ## Preliminary look
@@ -49,6 +50,11 @@ What are the unique cuisine types?
 unique(train$cuisine)
 ```
 
+How many times does each cuisine appear?
+
+```{r}
+cuisineFrequency <- count(train, cuisine, sort = TRUE)
+```
 
 
 # Analysis
@@ -74,8 +80,8 @@ number of recipes for any given cuisine. For example, cabbage might be used in
 
 - Make a new data table for the test set with a row for each recipe.
 
-- Use the previously determined ingredient weights to determine which cuisine has
-a plurality among the ingredients.
+- Use the previously determined ingredient weights to determine which cuisine 
+has a plurality among the ingredients.
 
 
 ## Reformatting the data
@@ -85,15 +91,17 @@ ingredients.  Also, keep track of how many ingredients belong to each recipe.
 ```{r}
 ingredientList <- unlist(train$ingredients)
 nlengths <- sapply(train$ingredients, length)
+mean(nlengths)
 ```
+The averge recipe has about `r round(mean(nlengths))` ingredients.
 
 Now make the data table
 
 ```{r}
-ingredFrame <- data.frame(id = rep(train$id, nlengths),
+ingredients <- data.frame(id = rep(train$id, nlengths),
                         cuisine = rep(train$cuisine, nlengths),
                         ingredient = ingredientList)
-ingredients <- setDT(ingredFrame)
+ingredients <- tbl_df(ingredients)
 ```
 
 
@@ -106,13 +114,79 @@ Let's get a list of unique ingredients.
 uniqueIng <- unique(ingredients$ingredient)
 ```
 
-Let's tabulate cuisines by ingredient using the dplyr package
-
-```{r, message=FALSE}
-library(dplyr)
-```
+Let's tabulate cuisines by ingredient.
 
 ```{r}
-ingtbl <- as.tbl(ingredients)
-occurances <- count(ingtbl, c("ingredient","cuisine"))
+occurances <- count(ingredients, ingredient, cuisine, sort=TRUE)
+print(occurances, n=50)
 ```
+
+For a given ingredient, which cuisine appears the most often?  When we try to 
+predict cuisines, that ingredient will "vote" for its associated cuisine
+
+```{r}
+votes <- occurances %>% group_by(ingredient) %>% top_n(n=1, wt = n)
+votes <- rename(votes, cuisine.vote = cuisine, n.votes = n)
+```
+
+Note that if an ingredient has two cuisines that tie for max occurances, it will
+get a row for each of them.  For now, I guess that means that that lucky (and
+indecisive) ingredient gets two votes!
+
+## Voting with the training set
+
+Now that we have a preferred cuisine for each ingredient, let's take the
+training recipes and let their ingredients vote on which kind of cuisine they
+probably are.  Let's hope for a reasonable success rate!
+
+```{r}
+trainVotes <- inner_join(ingredients, votes)
+voteTally <- count(trainVotes, id, cuisine.vote, sort=TRUE)
+voteWinners <- voteTally %>% group_by(id) %>% top_n(n=1, wt = n)
+voteWinners <- transmute(voteWinners, cuisine.vote)
+voteWinners
+```
+
+There are still some ties (Recipe 8 has four votes for italian and four for
+southern_us).  We can break this tie by choosing the cuisine which appears more
+often in the overall training dataset.
+
+```{r}
+ties <- voteWinners %>% group_by(id) %>% filter(n() > 1)
+ties <- rename(ties, cuisine = cuisine.vote)
+ties <- inner_join(ties, cuisineFrequency)
+tieBreaker <- ties %>% group_by(id) %>% top_n(n=1, wt = n)
+tieBreaker <- transmute(tieBreaker, cuisine.choice = cuisine)
+```
+
+Let's use this to remove the ties in voteWinners.
+
+```{r}
+voteWinners <- left_join(voteWinners,tieBreaker)
+voteWinners[is.na(voteWinners$cuisine.choice),]$cuisine.choice <- as.character(voteWinners[is.na(voteWinners$cuisine.choice),]$cuisine.vote)
+voteWinners <- transmute(voteWinners, cuisine.choice)
+voteFinal <- distinct(voteWinners)
+```
+
+Now we'll merge voteFinal with the training set and see how often we guess
+correctly.
+
+```{r}
+trainingGuess <- left_join(train, voteFinal)
+```
+
+So how did we do?
+
+```{r}
+# Distinct recipes:
+total <- length(trainingGuess$id)
+# Recipes we got correct:
+ncorrect <- length(which(trainingGuess$cuisine == trainingGuess$cuisine.choice))
+```
+
+Well, we managed to get `r round(ncorrect/total, digits = 2)` correct.
+Hopefully that's not too bad for a first try!
+
+## Applying solution to the test set
+
+Let's take the scheme from above and try it out on the test set!
