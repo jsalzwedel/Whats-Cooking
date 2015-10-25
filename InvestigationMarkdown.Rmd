@@ -1,8 +1,10 @@
 ---
 title: "Exploring Ingredients Data Set"
 author: "jsalzwedel"
-date: "09/13/2015"
-output: html_document
+date: "`r format(Sys.Date())`"
+output: 
+    html_document:
+        keep_md: true
 ---
 
 Let's take a look at the Kaggle "What's cooking" data set.  The goal of the

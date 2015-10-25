@@ -1,8 +1,10 @@
 ---
 title: "Trying stringdist package"
 author: "jsalzwedel"
-date: "10/04/2015"
-output: html_document
+date: "`r format(Sys.Date())`"
+output: 
+    html_document:
+        keep_md: true
 ---
 
 ```{r}
