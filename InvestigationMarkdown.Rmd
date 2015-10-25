@@ -57,7 +57,7 @@ cuisineFrequency <- count(train, cuisine, sort = TRUE)
 ```
 
 
-# Analysis
+# Analysis of ingredient correlations
 
 ## Strategy
 
@@ -66,7 +66,8 @@ type of cuisine.  There are many ways to use this information.  The simplest
 might be to ascribe a single cuisine to each ingredient based on where it is
 used most.  When we want to make predictions, each ingredient in a recipe
 will weight that recipe towards a certain cuisine.  We can then then add up the
-weights to see which cuisine is most favored.
+weights to see which cuisine is most favored.  In essence, each ingredient will
+vote for a certain cuisine type.
 
 Our analysis strategy will be as follows:
 
@@ -74,7 +75,7 @@ Our analysis strategy will be as follows:
 keep the cuisine and recipe ID as additional columns.  
 
 - For each ingredient, see where it is most often used, and associate it with
-that type of cuisine.  Here we need to be careful to not be biased by the raw
+that type of cuisine.  Here we may need to be careful to not be biased by the raw
 number of recipes for any given cuisine. For example, cabbage might be used in 
 10/100 French recipes, but in 5/5 Korean recipes.
 
@@ -238,3 +239,18 @@ prediction <- distinct(testVoteWinners)
 prediction <- rename(prediction, cuisine = cuisine.choice)
 write.csv(prediction, "prediction.csv", row.names = FALSE, quote=FALSE)
 ```
+
+Well, that got us a 49% success rate.  Not too bad, and much better than 
+"every recipe is Italian" prescription, which gets a 19% success rate.  In the
+next section, we'll see if we can improve it by looking at two-ingredient
+correlations.
+
+# Analysis using two-ingredient correlations
+
+Here we'll look to see if a coincidence of two ingredients in a recipe can be a
+predictor of the cuisine type.  For example, black olives and feta might
+usually occur together in Greek food, while black olives and refried beans would
+suggest Mexican food.
+
+
+
