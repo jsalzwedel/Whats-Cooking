@@ -1,0 +1,27 @@
+---
+title: "Trying stringdist package"
+author: "jsalzwedel"
+date: "10/04/2015"
+output: html_document
+---
+
+```{r}
+library(stringdist)
+```
+
+Let's follow the example from http://www.michael-goettsche.de/?p=112, where this
+approach is applied to the What's Cooking project.
+
+First we'll get a list of unique ingredients:
+
+```{r}
+ingredientsUnique <- levels(ingredients$ingredient)
+```
+
+```{r}
+lv <- stringdistmatrix(ingredientsUnique, ingredientsUnique, method="lv")
+lvMatch <- which(lv==1, arr.ind=TRUE)
+for(i in seq_along(lvMatch)/2) {
+    print(ingredientsUnique[c(lvMatch[i, 1], lvMatch[i, 2])])
+}
+```
